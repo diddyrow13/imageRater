@@ -17,9 +17,17 @@ namespace imageRater
         public imageRaterMain()
         {
             InitializeComponent();
+
+            // Set picturebox mode so the images fir correctly horizontal vs portrait
+            leftPictureBox.SizeMode     = PictureBoxSizeMode.Zoom;
+            centerPictureBox.SizeMode   = PictureBoxSizeMode.Zoom;
+            rightPictureBox.SizeMode    = PictureBoxSizeMode.Zoom;
         }
 
-        string[] files;     // Holds the filenames
+        private string[] files;     // Holds the filenames
+        private int[] recentlyUsed  = new int[3]; // Pictures that are currently displayed
+        //private int[] availableNums = new int[Gallery.Count];
+        List<int> availableNums = new List<int>();
 
         struct Picture
         {
@@ -29,7 +37,7 @@ namespace imageRater
             public string   source;         // Full file source -> c:\users\file1.jpg
         }
 
-        int leftPicNum, centerPicNum, rightPicNum;
+        private int leftPicNum, centerPicNum, rightPicNum;
 
         List<Picture> Gallery = new List<Picture>();    // Contains all pictures from a folder
         // !!!!!!!!!!!!!!!!!!! Must check to see if there was already a folder in use
@@ -38,7 +46,7 @@ namespace imageRater
         // Refreshes all 3 picture boxes with new images from Gallery (contains source)
         public void GetPictures()
         {
-            // Get random number
+            // Get random seed
             Random rnd = new Random();
 
 
@@ -47,28 +55,77 @@ namespace imageRater
             while (unique == false)
             {
                 // Get random numbers
-                leftPicNum = rnd.Next(Gallery.Count);
-                centerPicNum = rnd.Next(Gallery.Count);
-                rightPicNum = rnd.Next(Gallery.Count);
-                
+                //leftPicNum   = rnd.Next(Gallery.Count);
+                //centerPicNum = rnd.Next(Gallery.Count);
+                //rightPicNum  = rnd.Next(Gallery.Count);
+
+                leftPicNum = rnd.Next(0, availableNums.Count);
+                availableNums.RemoveAt(leftPicNum);
+
+                centerPicNum = rnd.Next(0, availableNums.Count);
+                availableNums.RemoveAt(centerPicNum);
+
+                rightPicNum = rnd.Next(0, availableNums.Count);
+                availableNums.RemoveAt(rightPicNum);
+
+
                 // Exit if all numbers are !=
-                if (leftPicNum != centerPicNum &&
-                    leftPicNum != rightPicNum &&
+                if (leftPicNum   != centerPicNum &&
+                    leftPicNum   != rightPicNum  &&
                     centerPicNum != rightPicNum)
                 {
+                    //availableNums.Capacity = Gallery.Count; // Resert the gallery capacity 
+                    // Reset gallery size (INCREASE)
+                    for (int i = 0; i < 3; ++i)
+                        availableNums.Add(-1);
+
+                    // Put the old recently used pic nums back into available to be selected
+                    availableNums.Insert(recentlyUsed[0], recentlyUsed[0]);
+                    availableNums.Insert(recentlyUsed[1], recentlyUsed[1]);
+                    availableNums.Insert(recentlyUsed[2], recentlyUsed[2]);
+
+                    // Reset the gallery size (DECREASE)
+                    for (int i = 0; i < 3; ++i)
+                        availableNums.RemoveAt(availableNums.Count-1);
+
+                    // Set the new recently used to the pictures that will be displayed
+                    recentlyUsed[0] = leftPicNum;
+                    recentlyUsed[1] = centerPicNum;
+                    recentlyUsed[2] = rightPicNum;
+
                     unique = true;
+                }
+                else // Numbers weren't unique. reset the available list of pics
+                {
+                    // Reset gallery size (INCREASE)
+                    for (int i = 0; i < 3; ++i)
+                        availableNums.Add(-1);
+
+                    availableNums.Insert(leftPicNum, leftPicNum);       // Insert at leftpicnum the leftpicnum
+                    availableNums.Insert(centerPicNum, centerPicNum);   // Insert at centerpicnum the centerpicnum
+                    availableNums.Insert(rightPicNum, rightPicNum);     // Insert at rightpicnum the rightpicnum
+
+                    // Reset the gallery size (DECREASE)
+                    for (int i = 0; i < 3; ++i)
+                        availableNums.RemoveAt(availableNums.Count - 1);
                 }
             }
 
             // Show the image and update the image label
             leftImageLabel.Text = Gallery[leftPicNum].name;
-            leftPictureBox.ImageLocation = Gallery[leftPicNum].source;
+            Bitmap leftImage = new Bitmap(Gallery[leftPicNum].source);
+            //leftPictureBox.ImageLocation = Gallery[leftPicNum].source;
+            leftPictureBox.Image = leftImage;
             
             centerImageLabel.Text = Gallery[centerPicNum].name;
-            centerPictureBox.ImageLocation = Gallery[centerPicNum].source;
+            Bitmap centerImage = new Bitmap(Gallery[centerPicNum].source);
+            //centerPictureBox.ImageLocation = Gallery[centerPicNum].source;
+            centerPictureBox.Image = centerImage;
             
             rightImageLabel.Text = Gallery[rightPicNum].name;
-            rightPictureBox.ImageLocation = Gallery[rightPicNum].source;
+            Bitmap rightimage = new Bitmap(Gallery[rightPicNum].source);
+            //rightPictureBox.ImageLocation = Gallery[rightPicNum].source;
+            rightPictureBox.Image = rightimage;
         }
 
 
@@ -109,6 +166,11 @@ namespace imageRater
 
                     Gallery.Add(pic);
                 }
+                
+                // Make all pics available to be displayed
+                for (int i = 0; i < Gallery.Count; ++i)
+                    availableNums.Add(i);
+
                 // Put pictures in
                 GetPictures();
             }
